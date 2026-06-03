@@ -237,4 +237,5 @@ init().then(() => {
   if (window.lucide) {
     window.lucide.createIcons();
   }
+  document.body.classList.add("ready");
 });
