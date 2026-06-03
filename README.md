@@ -7,6 +7,12 @@ Static GitHub Pages deployment for two Session 406 course tasks:
 
 The apps run entirely in the browser, so GitHub Pages is enough. No Streamlit or FastAPI server is required.
 
+## Render Deployment
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ceilf6/shu-ml-session406-apps)
+
+The included `render.yaml` config creates a Render Static Site, runs `npm test` during the build, and publishes the repository root.
+
 ## Local Development
 
 ```bash
