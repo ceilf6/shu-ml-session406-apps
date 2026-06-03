@@ -170,7 +170,7 @@ h2 {
 }
 
 #digit-canvas,
-#ufo-map {
+.ufo-map {
   background: var(--field);
   border: 1px solid #27342f;
   border-radius: 8px;
@@ -185,8 +185,23 @@ h2 {
   max-height: 440px;
 }
 
-#ufo-map {
+.ufo-map {
   aspect-ratio: 2 / 1;
+  min-height: 280px;
+  overflow: hidden;
+  position: relative;
+}
+
+.ufo-map canvas {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.leaflet-container {
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
 }
 
 .toolbar {
@@ -195,6 +210,25 @@ h2 {
   grid-template-columns: 1fr 44px auto;
   gap: 10px;
   margin-top: 12px;
+}
+
+.digit-preview-row {
+  align-items: center;
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  gap: 10px;
+  grid-template-columns: 44px 1fr;
+  margin-top: 10px;
+}
+
+#digit-preview {
+  background: var(--field);
+  border: 1px solid #27342f;
+  border-radius: 5px;
+  height: 44px;
+  image-rendering: pixelated;
+  width: 44px;
 }
 
 .slider-label,
@@ -217,6 +251,50 @@ input[type="range"] {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.preset-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: -2px 0 14px;
+}
+
+.preset-row button {
+  background: #f4fbf8;
+  border: 1px solid #b7d8ca;
+  border-radius: 8px;
+  color: #126e82;
+  cursor: pointer;
+  min-height: 34px;
+}
+
+.profile-grid {
+  display: grid;
+  gap: 0;
+  margin-top: 14px;
+}
+
+.profile-item {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 42px minmax(90px, 0.9fr) minmax(160px, 1.2fr);
+  padding: 10px 0;
+}
+
+.profile-item span {
+  color: var(--orange);
+  font-weight: 800;
+}
+
+.profile-item small {
+  color: var(--muted);
+}
+
+.profile-item.active strong {
+  color: #126e82;
 }
 
 .input-grid input {
@@ -267,6 +345,17 @@ input[type="range"] {
   padding-top: 14px;
 }
 
+.ufo-explanation {
+  background: #f4fbf8;
+  border-left: 4px solid #126e82;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 14px;
+  padding: 10px 12px;
+}
+
 .status-dot {
   background: var(--red);
   border-radius: 50%;
@@ -307,7 +396,9 @@ svg {
   }
 
   .tabs,
-  .input-grid {
+  .input-grid,
+  .preset-row,
+  .profile-item {
     min-width: 0;
     grid-template-columns: 1fr;
   }

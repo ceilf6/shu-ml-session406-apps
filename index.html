@@ -4,8 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Session 406 ML Apps</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="./styles.css" />
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   </head>
   <body>
     <div class="app-shell">
@@ -38,6 +40,10 @@
                 <span class="model-pill" id="digit-accuracy">Loading model</span>
               </div>
               <canvas id="digit-canvas" width="280" height="280" aria-label="Digit drawing canvas"></canvas>
+              <div class="digit-preview-row">
+                <canvas id="digit-preview" width="28" height="28" aria-label="Normalized model input preview"></canvas>
+                <span>28x28 model input after crop, scale, and center</span>
+              </div>
               <div class="toolbar">
                 <label class="slider-label">
                   Brush
@@ -63,7 +69,7 @@
               </div>
               <div class="bars" id="digit-bars"></div>
               <div class="note-strip">
-                The model is a one-hidden-layer ReLU network trained from the course MNIST CSV and executed fully in the browser.
+                Two-hidden-layer browser model trained on 60k MNIST images; your drawing is normalized into the same 28x28 frame before prediction.
               </div>
             </section>
           </div>
@@ -75,7 +81,7 @@
               <div class="panel-heading">
                 <div>
                   <p class="eyebrow">Country classifier</p>
-                  <h2 id="ufo-title">UFO sighting inputs</h2>
+                  <h2 id="ufo-title">UFO country map classifier</h2>
                 </div>
                 <span class="model-pill" id="ufo-accuracy">Loading model</span>
               </div>
@@ -97,7 +103,14 @@
                   Predict country
                 </button>
               </form>
-              <canvas id="ufo-map" width="560" height="280" aria-label="Projected UFO location"></canvas>
+              <div class="preset-row" aria-label="Example UFO locations">
+                <button type="button" data-preset="sf">San Francisco</button>
+                <button type="button" data-preset="toronto">Toronto</button>
+                <button type="button" data-preset="london">London</button>
+                <button type="button" data-preset="sydney">Sydney</button>
+              </div>
+              <div id="ufo-map" class="ufo-map" aria-label="UFO sighting location map"></div>
+              <div class="profile-grid" id="ufo-profiles"></div>
             </section>
 
             <section class="panel result-panel">
@@ -109,8 +122,9 @@
                 <span class="status-dot" id="ufo-status"></span>
               </div>
               <div class="bars" id="ufo-bars"></div>
+              <div class="ufo-explanation" id="ufo-explanation"></div>
               <div class="note-strip">
-                The UFO model is trained from the course CSV with duration, latitude, and longitude, then exported as a browser-side classifier.
+                Historical UFO reports are grouped by country; the browser model compares duration and map location against those country clusters.
               </div>
             </section>
           </div>

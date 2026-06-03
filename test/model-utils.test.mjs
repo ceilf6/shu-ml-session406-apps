@@ -3,8 +3,10 @@ import { test } from "node:test";
 
 import {
   downsampleGrid,
+  normalizeDigitImage,
   predictDenseNetwork,
   predictLinearSoftmax,
+  projectGeoPoint,
   standardizeFeatures,
   topK,
 } from "../src/model-utils.js";
@@ -90,4 +92,46 @@ test("downsampleGrid averages source cells into a smaller grid", () => {
   const result = downsampleGrid(source, 4, 4, 2, 2);
 
   assert.deepEqual(result, [1, 0, 0, 0.5]);
+});
+
+test("normalizeDigitImage centers an off-axis handwritten mark", () => {
+  const source = Array.from({ length: 8 * 8 }, () => 0);
+  source[1 * 8 + 1] = 1;
+  source[1 * 8 + 2] = 1;
+  source[2 * 8 + 1] = 1;
+  source[2 * 8 + 2] = 1;
+
+  const result = normalizeDigitImage(source, 8, 8, {
+    targetWidth: 8,
+    targetHeight: 8,
+    innerSize: 4,
+    threshold: 0.05,
+  });
+  const activeXs = result
+    .map((value, index) => (value > 0.1 ? index % 8 : -1))
+    .filter((value) => value >= 0);
+  const activeYs = result
+    .map((value, index) => (value > 0.1 ? Math.floor(index / 8) : -1))
+    .filter((value) => value >= 0);
+
+  assert.equal(result.length, 64);
+  assert.ok(Math.min(...activeXs) > 0);
+  assert.ok(Math.max(...activeXs) < 7);
+  assert.ok(Math.min(...activeYs) > 0);
+  assert.ok(Math.max(...activeYs) < 7);
+});
+
+test("normalizeDigitImage returns an empty target for a blank canvas", () => {
+  const result = normalizeDigitImage(Array.from({ length: 16 }, () => 0), 4, 4, {
+    targetWidth: 4,
+    targetHeight: 4,
+  });
+
+  assert.deepEqual(result, Array.from({ length: 16 }, () => 0));
+});
+
+test("projectGeoPoint maps latitude and longitude into viewport coordinates", () => {
+  assert.deepEqual(projectGeoPoint(0, 0, 360, 180), { x: 180, y: 90 });
+  assert.deepEqual(projectGeoPoint(90, -180, 360, 180), { x: 0, y: 0 });
+  assert.deepEqual(projectGeoPoint(-90, 180, 360, 180), { x: 360, y: 180 });
 });

@@ -65,7 +65,7 @@ def predict(model: dict, features: np.ndarray) -> np.ndarray:
 
 def export_model(model: dict, output_path: Path, metadata: dict) -> None:
     model["metadata"] = metadata
-    output_path.write_text(json.dumps(model, indent=2) + "\n", encoding="utf-8")
+    output_path.write_text(json.dumps(model, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
 def train_relu_network(
@@ -74,47 +74,90 @@ def train_relu_network(
     x_test: np.ndarray,
     y_test: np.ndarray,
     *,
-    hidden_units: int = 96,
-    epochs: int = 16,
-    learning_rate: float = 0.18,
+    hidden_layers: tuple[int, ...] = (256, 128),
+    epochs: int = 28,
+    learning_rate: float = 0.001,
     batch_size: int = 256,
 ) -> tuple[dict, float]:
     rng = np.random.default_rng(406)
     labels = [str(index) for index in range(10)]
-    w1 = (rng.standard_normal((x_train.shape[1], hidden_units)) * np.sqrt(2 / x_train.shape[1])).astype(
-        np.float32
-    )
-    b1 = np.zeros(hidden_units, dtype=np.float32)
-    w2 = (rng.standard_normal((hidden_units, 10)) * np.sqrt(2 / hidden_units)).astype(np.float32)
-    b2 = np.zeros(10, dtype=np.float32)
+    layer_sizes = (x_train.shape[1], *hidden_layers, 10)
+    weights = [
+        (rng.standard_normal((layer_sizes[index], layer_sizes[index + 1])) * np.sqrt(2 / layer_sizes[index])).astype(
+            np.float32
+        )
+        for index in range(len(layer_sizes) - 1)
+    ]
+    biases = [np.zeros(size, dtype=np.float32) for size in layer_sizes[1:]]
+    weight_moments = [np.zeros_like(weight) for weight in weights]
+    weight_velocities = [np.zeros_like(weight) for weight in weights]
+    bias_moments = [np.zeros_like(bias) for bias in biases]
+    bias_velocities = [np.zeros_like(bias) for bias in biases]
     targets = np.eye(10, dtype=np.float32)[y_train]
+    step = 0
+    beta1 = 0.9
+    beta2 = 0.999
+    epsilon = 1e-8
 
     for _ in range(epochs):
         indices = rng.permutation(len(x_train))
         for start in range(0, len(x_train), batch_size):
+            step += 1
             batch_indices = indices[start : start + batch_size]
             xb = x_train[batch_indices]
             yb = targets[batch_indices]
-            z1 = xb @ w1 + b1
-            a1 = np.maximum(z1, 0)
-            logits = a1 @ w2 + b2
+            activations = [xb]
+            pre_activations = []
+            for layer_index, (weight, bias) in enumerate(zip(weights, biases)):
+                z = activations[-1] @ weight + bias
+                pre_activations.append(z)
+                activations.append(np.maximum(z, 0) if layer_index < len(weights) - 1 else z)
+
+            logits = activations[-1]
             logits -= logits.max(axis=1, keepdims=True)
             probabilities = np.exp(logits)
             probabilities /= probabilities.sum(axis=1, keepdims=True)
 
-            dlogits = (probabilities - yb) / len(xb)
-            dw2 = a1.T @ dlogits
-            db2 = dlogits.sum(axis=0)
-            dz1 = (dlogits @ w2.T) * (z1 > 0)
-            dw1 = xb.T @ dz1
-            db1 = dz1.sum(axis=0)
+            gradient = (probabilities - yb) / len(xb)
+            gradient_weights = []
+            gradient_biases = []
+            for layer_index in range(len(weights) - 1, -1, -1):
+                gradient_weights.insert(0, activations[layer_index].T @ gradient)
+                gradient_biases.insert(0, gradient.sum(axis=0))
+                if layer_index > 0:
+                    gradient = (gradient @ weights[layer_index].T) * (pre_activations[layer_index - 1] > 0)
 
-            w1 -= learning_rate * dw1
-            b1 -= learning_rate * db1
-            w2 -= learning_rate * dw2
-            b2 -= learning_rate * db2
+            for layer_index in range(len(weights)):
+                weight_moments[layer_index] = beta1 * weight_moments[layer_index] + (1 - beta1) * gradient_weights[
+                    layer_index
+                ]
+                weight_velocities[layer_index] = beta2 * weight_velocities[layer_index] + (
+                    1 - beta2
+                ) * np.square(gradient_weights[layer_index])
+                bias_moments[layer_index] = beta1 * bias_moments[layer_index] + (1 - beta1) * gradient_biases[
+                    layer_index
+                ]
+                bias_velocities[layer_index] = beta2 * bias_velocities[layer_index] + (1 - beta2) * np.square(
+                    gradient_biases[layer_index]
+                )
 
-    test_logits = np.maximum(x_test @ w1 + b1, 0) @ w2 + b2
+                corrected_weight_moment = weight_moments[layer_index] / (1 - beta1**step)
+                corrected_weight_velocity = weight_velocities[layer_index] / (1 - beta2**step)
+                corrected_bias_moment = bias_moments[layer_index] / (1 - beta1**step)
+                corrected_bias_velocity = bias_velocities[layer_index] / (1 - beta2**step)
+                weights[layer_index] -= learning_rate * corrected_weight_moment / (
+                    np.sqrt(corrected_weight_velocity) + epsilon
+                )
+                biases[layer_index] -= learning_rate * corrected_bias_moment / (
+                    np.sqrt(corrected_bias_velocity) + epsilon
+                )
+
+    test_activation = x_test
+    for layer_index, (weight, bias) in enumerate(zip(weights, biases)):
+        test_activation = test_activation @ weight + bias
+        if layer_index < len(weights) - 1:
+            test_activation = np.maximum(test_activation, 0)
+    test_logits = test_activation
     accuracy = float((test_logits.argmax(axis=1) == y_test).mean())
     model = {
         "labels": labels,
@@ -124,41 +167,58 @@ def train_relu_network(
         },
         "layers": [
             {
-                "weights": w1.T.round(6).tolist(),
-                "biases": b1.round(6).tolist(),
-                "activation": "relu",
-            },
-            {
-                "weights": w2.T.round(6).tolist(),
-                "biases": b2.round(6).tolist(),
-                "activation": "linear",
-            },
+                "weights": weight.T.round(5).tolist(),
+                "biases": bias.round(5).tolist(),
+                "activation": "relu" if index < len(weights) - 1 else "linear",
+            }
+            for index, (weight, bias) in enumerate(zip(weights, biases))
         ],
     }
     return model, accuracy
 
 
-def train_digit_model(train_csv: Path, test_csv: Path, output_dir: Path) -> None:
+def load_digit_data(
+    train_csv: Path,
+    test_csv: Path,
+    full_npz: Path | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str]:
+    if full_npz is not None:
+        full = np.load(full_npz)
+        x_train = full["x_train"].reshape(-1, 28 * 28).astype(np.float32) / 255.0
+        y_train = full["y_train"].astype(int)
+        x_test = full["x_test"].reshape(-1, 28 * 28).astype(np.float32) / 255.0
+        y_test = full["y_test"].astype(int)
+        return x_train, y_train, x_test, y_test, "Keras full MNIST dataset (60k train / 10k test)"
+
     train = pd.read_csv(train_csv)
     test = pd.read_csv(test_csv)
-    x_train = train.iloc[:, 1:].to_numpy(dtype=float) / 255.0
+    x_train = train.iloc[:, 1:].to_numpy(dtype=np.float32) / 255.0
     y_train = train.iloc[:, 0].to_numpy(dtype=int)
-    x_test = test.iloc[:, 1:].to_numpy(dtype=float) / 255.0
+    x_test = test.iloc[:, 1:].to_numpy(dtype=np.float32) / 255.0
     y_test = test.iloc[:, 0].to_numpy(dtype=int)
+    return x_train, y_train, x_test, y_test, "course MNIST CSV subset"
+
+
+def train_digit_model(train_csv: Path, test_csv: Path, output_dir: Path, full_npz: Path | None = None) -> None:
+    x_train, y_train, x_test, y_test, source = load_digit_data(train_csv, test_csv, full_npz)
 
     model, accuracy = train_relu_network(x_train, y_train, x_test, y_test)
     export_model(
         model,
         output_dir / "digit-model.json",
         {
-            "name": "MNIST one-hidden-layer ReLU classifier",
-            "source": str(train_csv),
+            "name": "MNIST two-hidden-layer ReLU classifier",
+            "source": source,
             "testAccuracy": round(accuracy, 4),
+            "trainSamples": int(len(x_train)),
+            "testSamples": int(len(x_test)),
             "featureCount": 784,
             "inputShape": [28, 28],
-            "hiddenUnits": 96,
+            "hiddenLayers": [256, 128],
+            "preprocessing": "Canvas strokes are cropped, scaled to a 20x20 box, and centered in a 28x28 MNIST frame.",
         },
     )
+    print(f"digit accuracy={accuracy:.4f} train={len(x_train)} test={len(x_test)} source={source}")
 
 
 def train_ufo_model(csv_path: Path, output_dir: Path) -> None:
@@ -198,29 +258,58 @@ def train_ufo_model(csv_path: Path, output_dir: Path) -> None:
         scale=scale,
     )
     accuracy = float((predict(model, features[test_indices]) == labels[test_indices]).mean())
+    country_profiles = []
+    for country_code in classes:
+        rows = ufo[ufo["country"] == country_code]
+        country_profiles.append(
+            {
+                "label": COUNTRY_NAMES[country_code],
+                "code": country_code.upper(),
+                "count": int(len(rows)),
+                "share": round(float(len(rows) / len(ufo)), 4),
+                "centroid": {
+                    "seconds": round(float(rows["seconds"].median()), 2),
+                    "latitude": round(float(rows["latitude"].mean()), 4),
+                    "longitude": round(float(rows["longitude"].mean()), 4),
+                },
+                "range": {
+                    "latitude": [
+                        round(float(rows["latitude"].quantile(0.1)), 4),
+                        round(float(rows["latitude"].quantile(0.9)), 4),
+                    ],
+                    "longitude": [
+                        round(float(rows["longitude"].quantile(0.1)), 4),
+                        round(float(rows["longitude"].quantile(0.9)), 4),
+                    ],
+                },
+            }
+        )
     export_model(
         model,
         output_dir / "ufo-model.json",
         {
             "name": "UFO sighting country nearest-centroid classifier",
-            "source": str(csv_path),
+            "source": "course UFO sightings CSV",
             "testAccuracy": round(accuracy, 4),
             "featureNames": ["Duration seconds", "Latitude", "Longitude"],
             "sampleCount": int(len(ufo)),
+            "countryProfiles": country_profiles,
         },
     )
+    print(f"ufo accuracy={accuracy:.4f} samples={len(ufo)} source=course UFO sightings CSV")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mnist-train-csv", required=True, type=Path)
     parser.add_argument("--mnist-test-csv", required=True, type=Path)
+    parser.add_argument("--mnist-full-npz", type=Path)
     parser.add_argument("--ufo-csv", required=True, type=Path)
     parser.add_argument("--output-dir", default=Path("data"), type=Path)
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    train_digit_model(args.mnist_train_csv, args.mnist_test_csv, args.output_dir)
+    train_digit_model(args.mnist_train_csv, args.mnist_test_csv, args.output_dir, args.mnist_full_npz)
     train_ufo_model(args.ufo_csv, args.output_dir)
 
 
