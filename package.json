@@ -1,0 +1,9 @@
+{
+  "name": "shu-ml-session406-apps",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

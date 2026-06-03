@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Session 406 ML Apps</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Shanghai University ML01</p>
+          <h1>Session 406 Cloud Apps</h1>
+        </div>
+        <nav class="tabs" aria-label="App switcher">
+          <button class="tab-button active" data-view="mnist" type="button">
+            <i data-lucide="badge-8"></i>
+            MNIST App
+          </button>
+          <button class="tab-button" data-view="ufo" type="button">
+            <i data-lucide="radar"></i>
+            UFO App
+          </button>
+        </nav>
+      </header>
+
+      <main>
+        <section class="view active" id="mnist-view" aria-labelledby="mnist-title">
+          <div class="workspace two-column">
+            <section class="panel draw-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Canvas classifier</p>
+                  <h2 id="mnist-title">Draw a digit</h2>
+                </div>
+                <span class="model-pill" id="digit-accuracy">Loading model</span>
+              </div>
+              <canvas id="digit-canvas" width="280" height="280" aria-label="Digit drawing canvas"></canvas>
+              <div class="toolbar">
+                <label class="slider-label">
+                  Brush
+                  <input id="brush-size" type="range" min="10" max="34" value="22" />
+                </label>
+                <button class="icon-button" id="clear-digit" type="button" title="Clear canvas">
+                  <i data-lucide="eraser"></i>
+                </button>
+                <button class="command-button" id="predict-digit" type="button">
+                  <i data-lucide="sparkles"></i>
+                  Predict
+                </button>
+              </div>
+            </section>
+
+            <section class="panel result-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Prediction</p>
+                  <h2 id="digit-label">Waiting for input</h2>
+                </div>
+                <span class="status-dot" id="digit-status"></span>
+              </div>
+              <div class="bars" id="digit-bars"></div>
+              <div class="note-strip">
+                The model is a one-hidden-layer ReLU network trained from the course MNIST CSV and executed fully in the browser.
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="ufo-view" aria-labelledby="ufo-title">
+          <div class="workspace two-column">
+            <section class="panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Country classifier</p>
+                  <h2 id="ufo-title">UFO sighting inputs</h2>
+                </div>
+                <span class="model-pill" id="ufo-accuracy">Loading model</span>
+              </div>
+              <form class="input-grid" id="ufo-form">
+                <label>
+                  Duration seconds
+                  <input id="ufo-seconds" type="number" min="1" max="60" step="1" value="20" />
+                </label>
+                <label>
+                  Latitude
+                  <input id="ufo-latitude" type="number" min="-90" max="90" step="0.0001" value="37.7749" />
+                </label>
+                <label>
+                  Longitude
+                  <input id="ufo-longitude" type="number" min="-180" max="180" step="0.0001" value="-122.4194" />
+                </label>
+                <button class="command-button wide" type="submit">
+                  <i data-lucide="scan-search"></i>
+                  Predict country
+                </button>
+              </form>
+              <canvas id="ufo-map" width="560" height="280" aria-label="Projected UFO location"></canvas>
+            </section>
+
+            <section class="panel result-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Prediction</p>
+                  <h2 id="ufo-label">Waiting for input</h2>
+                </div>
+                <span class="status-dot" id="ufo-status"></span>
+              </div>
+              <div class="bars" id="ufo-bars"></div>
+              <div class="note-strip">
+                The UFO model is trained from the course CSV with duration, latitude, and longitude, then exported as a browser-side classifier.
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

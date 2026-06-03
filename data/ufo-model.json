@@ -1,0 +1,66 @@
+{
+  "labels": [
+    "Australia",
+    "Canada",
+    "Germany",
+    "United Kingdom",
+    "United States"
+  ],
+  "scaler": {
+    "mean": [
+      23.70429571,
+      38.66811879,
+      -90.86254852
+    ],
+    "scale": [
+      21.30699123,
+      8.85195895,
+      31.88147475
+    ]
+  },
+  "coefficients": [
+    [
+      0.00608815,
+      -16.10851075,
+      14.67024311
+    ],
+    [
+      -0.09356933,
+      1.93214837,
+      -0.00112418
+    ],
+    [
+      0.21884071,
+      2.67238765,
+      6.32856246
+    ],
+    [
+      0.31957417,
+      3.17778982,
+      5.59630909
+    ],
+    [
+      -0.00616054,
+      -0.0682264,
+      -0.31564146
+    ]
+  ],
+  "intercepts": [
+    -123.57550035,
+    -3.95915688,
+    -18.41526371,
+    -13.92527646,
+    -0.11630464
+  ],
+  "metadata": {
+    "name": "UFO sighting country nearest-centroid classifier",
+    "source": "/Users/ceilf6/Desktop/SHU/SHU-machine-learning/lundechen-machine_learning_2026_spring/session-406-ml-app/data/ufos.csv",
+    "testAccuracy": 0.9447,
+    "featureNames": [
+      "Duration seconds",
+      "Latitude",
+      "Longitude"
+    ],
+    "sampleCount": 25863
+  }
+}
